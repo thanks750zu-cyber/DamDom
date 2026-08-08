@@ -1,17 +1,8 @@
 {
-  "name": "DamDom - التطبيق الشامل",
+  "name": "DamDom",
   "short_name": "DamDom",
-  "start_url": "/",
+  "start_url": ".",
   "display": "standalone",
-  "background_color": "#f7f8fc",
-  "theme_color": "#db2777",
-  "description": "منصة التواصل والذكاء الاصطناعي الشاملة",
-  "icons": [
-    {
-      "src": "https://raw.githubusercontent.com/thanks750zu-cyber/DamDom/main/icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
-    }
-  ]
+  "background_color": "#ffffff",
+  "theme_color": "#db2777"
 }
