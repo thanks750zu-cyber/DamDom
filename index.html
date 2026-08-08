@@ -1,0 +1,919 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>DamDom - التطبيق الشامل</title>
+
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Tahoma, sans-serif; -webkit-tap-highlight-color: transparent; }
+    body { background-color: #f7f8fc; color: #333; overflow: hidden; height: 100vh; width: 100vw; }
+
+    .screen { 
+      position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; background: #f7f8fc; 
+      display: flex; flex-direction: column; opacity: 0; visibility: hidden;
+      transform: scale(0.97) translateY(10px);
+      transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1), transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.3s;
+      z-index: 1;
+    }
+    .screen.active { opacity: 1; visibility: visible; transform: scale(1) translateY(0); z-index: 10; }
+
+    #auth-screen { background: linear-gradient(135deg, #fbcfe8 0%, #f472b6 100%); justify-content: center; align-items: center; padding: 20px; z-index: 50; }
+    .auth-box { padding: 35px 25px; background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(12px); border-radius: 28px; text-align: center; width: 100%; max-width: 360px; box-shadow: 0 15px 35px rgba(244,114,182,0.25); border: 1px solid rgba(255,255,255,0.6); }
+    .queen-logo { font-size: 2.8rem; font-weight: 800; color: #db2777; margin-bottom: 2px; font-family: Georgia, serif; letter-spacing: -1px; }
+    .auth-subtitle { color: #6b7280; font-size: 0.95rem; margin-bottom: 25px; font-weight: 500; }
+
+    input, textarea { width: 100%; padding: 14px 18px; border-radius: 14px; border: 1.5px solid #fbcfe8; outline: none; font-size: 1rem; margin-bottom: 14px; background: #fff; color: #333; transition: all 0.2s; }
+    input:focus, textarea:focus { border-color: #db2777; box-shadow: 0 0 0 4px rgba(219,39,119,0.1); }
+
+    .pink-btn { background: linear-gradient(135deg, #ec4899 0%, #db2777 100%); color: #fff; border: none; padding: 14px 20px; border-radius: 14px; cursor: pointer; font-weight: bold; width: 100%; font-size: 1rem; box-shadow: 0 6px 20px rgba(219,39,119,0.3); transition: transform 0.1s; }
+    .pink-btn:active { transform: scale(0.97); }
+    .danger-btn { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%) !important; box-shadow: 0 6px 20px rgba(239,68,68,0.3) !important; }
+
+    .header { 
+      background: linear-gradient(135deg, #f472b6 0%, #db2777 100%); padding: 18px 20px; 
+      padding-top: max(22px, env(safe-area-inset-top)); 
+      color: #fff; display: flex; justify-content: space-between; align-items: center; 
+      box-shadow: 0 4px 15px rgba(219,39,119,0.3); flex-shrink: 0; height: 80px;
+    }
+    .header-title { font-size: 1.4rem; font-weight: 800; color: #fff; letter-spacing: -0.5px; }
+
+    .header-btn { 
+      background: rgba(255, 255, 255, 0.25); border: 1.5px solid rgba(255, 255, 255, 0.6); 
+      color: #fff; padding: 8px 14px; border-radius: 12px; font-weight: 700; 
+      cursor: pointer; font-size: 0.9rem; display: flex; align-items: center; gap: 6px; transition: background 0.2s;
+    }
+    .header-btn:active { background: rgba(255, 255, 255, 0.4); }
+    .header-btn-light { background: #fff; color: #db2777; border: none; }
+
+    .stories-bar { display: flex; gap: 12px; padding: 12px 16px; overflow-x: auto; background: #fff; border-bottom: 1px solid #f3f4f6; flex-shrink: 0; scrollbar-width: none; }
+    .stories-bar::-webkit-scrollbar { display: none; }
+    .story-ring { width: 62px; height: 62px; border-radius: 50%; background: linear-gradient(135deg, #ec4899, #f59e0b); padding: 2.5px; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; }
+    .story-inner { width: 100%; height: 100%; border-radius: 50%; background: #fff; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+    .story-inner img { width: 100%; height: 100%; object-fit: cover; }
+    .add-story-ring { background: #e5e7eb; }
+
+    .chat-list { flex: 1; overflow-y: auto; background-color: #fff; position: relative; }
+    .chat-item { display: flex; padding: 14px 18px; border-bottom: 1px solid #fafafa; align-items: center; cursor: pointer; }
+    .chat-item:active { background-color: #fdf2f8; }
+
+    .avatar-container { position: relative; margin-left: 14px; flex-shrink: 0; }
+    .avatar { width: 52px; height: 52px; border-radius: 50%; background-color: #fbcfe8; display: flex; align-items: center; justify-content: center; color: #db2777; font-weight: bold; font-size: 1.3rem; overflow: hidden; border: 1.5px solid #fce7f3; }
+    .avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .ai-avatar { background: linear-gradient(135deg, #8b5cf6 0%, #3b82f6 100%); color: #fff; }
+
+    .fab-btn {
+      position: absolute; bottom: 25px; left: 25px;
+      background: linear-gradient(135deg, #ec4899 0%, #db2777 100%); color: #fff; width: 58px; height: 58px;
+      border-radius: 50%; border: none; display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 8px 25px rgba(219,39,119,0.4); cursor: pointer; z-index: 99;
+    }
+    .fab-btn:active { transform: scale(0.92); }
+
+    .chat-header { background: linear-gradient(135deg, #f472b6 0%, #db2777 100%); color: #fff; padding: 14px 18px; padding-top: max(20px, env(safe-area-inset-top)); display: flex; align-items: center; gap: 12px; flex-shrink: 0; height: 75px; box-shadow: 0 4px 15px rgba(219,39,119,0.3); }
+    .messages-container { flex: 1; padding: 16px; overflow-y: auto; background-color: #f8f9fc; display: flex; flex-direction: column; gap: 12px; }
+
+    .msg-bubble { padding: 12px 16px; border-radius: 18px; max-width: 78%; word-break: break-word; line-height: 1.5; font-size: 0.95rem; }
+    .msg-me { background: linear-gradient(135deg, #ec4899 0%, #db2777 100%); color: #fff; align-self: flex-end; border-bottom-right-radius: 4px; }
+    .msg-other { background-color: #fff; color: #1f2937; align-self: flex-start; border-bottom-left-radius: 4px; border: 1px solid #f3f4f6; }
+    .msg-ai { background: linear-gradient(135deg, #f3e8ff 0%, #e0e7ff 100%); color: #1f2937; align-self: flex-start; border-bottom-left-radius: 4px; border: 1px solid #ddd6fe; }
+    .msg-media { max-width: 100%; border-radius: 12px; margin-bottom: 6px; display: block; max-height: 220px; object-fit: cover; }
+
+    .input-area { padding: 12px 16px; background: #fff; display: flex; gap: 10px; border-top: 1px solid #f3f4f6; align-items: center; flex-shrink: 0; }
+    .attach-btn { background: #fdf2f8; border: 1px solid #fbcfe8; color: #db2777; width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; }
+    .send-btn { background: linear-gradient(135deg, #ec4899 0%, #db2777 100%); color: #fff; border: none; padding: 0 18px; border-radius: 12px; cursor: pointer; font-weight: bold; height: 44px; font-size: 0.95rem; flex-shrink: 0; }
+
+    .modal { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.6); backdrop-filter: blur(6px); display: flex; justify-content: center; align-items: center; z-index: 100; opacity: 0; visibility: hidden; transition: all 0.25s ease; }
+    .modal.active-modal { opacity: 1; visibility: visible; }
+    .modal-box { background: #fff; padding: 24px; border-radius: 28px; width: 90%; max-width: 340px; display: flex; flex-direction: column; gap: 14px; box-shadow: 0 20px 40px rgba(0,0,0,0.15); border: 1px solid #f3f4f6; }
+
+    #profile-screen { background: #f7f8fc; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+    .profile-card { background: #fff; border-radius: 28px; padding: 30px 20px; width: 100%; max-width: 400px; display: flex; flex-direction: column; align-items: center; box-shadow: 0 10px 30px rgba(0,0,0,0.04); border: 1px solid #f3f4f6; margin-top: 10px; }
+    .profile-avatar-wrapper { width: 100px; height: 100px; border-radius: 50%; background: #fbcfe8; position: relative; margin-bottom: 16px; border: 3px solid #db2777; overflow: hidden; cursor: pointer; box-shadow: 0 8px 20px rgba(219,39,119,0.2); }
+    .profile-avatar-wrapper img { width: 100%; height: 100%; object-fit: cover; }
+    .profile-avatar-overlay { position: absolute; bottom: 0; left: 0; width: 100%; background: rgba(0,0,0,0.5); color: #fff; font-size: 0.7rem; text-align: center; padding: 4px 0; font-weight: bold; }
+
+    #toast-notification {
+      position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-100px);
+      background: #10b981; color: #fff; padding: 12px 24px; border-radius: 50px;
+      font-weight: bold; font-size: 0.95rem; box-shadow: 0 10px 25px rgba(16, 185, 129, 0.3);
+      z-index: 999; transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      display: flex; align-items: center; gap: 8px;
+    }
+    #toast-notification.show { transform: translateX(-50%) translateY(0); }
+  </style>
+</head>
+<body>
+
+  <div id="toast-notification">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
+    <span id="toast-msg">تم بنجاح!</span>
+  </div>
+
+  <input type="file" id="global-profile-pic-input" accept="image/*" style="display:none;">
+  <input type="file" id="global-story-input" accept="image/*" style="display:none;">
+
+  <!-- شاشة الدخول -->
+  <div id="auth-screen" class="screen">
+    <div class="auth-box">
+      <div class="queen-logo">DamDom</div>
+      <div class="auth-subtitle">منصة التواصل والذكاء الاصطناعي</div>
+      <input type="text" id="username-input" placeholder="اسم المستخدم الفريد">
+      <input type="password" id="password-input" placeholder="كلمة المرور">
+      <button class="pink-btn" id="login-btn">دخول أو إنشاء حساب 🚀</button>
+    </div>
+  </div>
+
+  <!-- الشاشة الرئيسية -->
+  <div id="main-screen" class="screen">
+    <div class="header">
+      <div class="header-title">DamDom</div>
+      <button class="header-btn" id="profile-tab-btn">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+        الملف الشخصي
+      </button>
+    </div>
+
+    <!-- شريط القصص -->
+    <div class="stories-bar" id="stories-bar">
+      <div class="story-ring add-story-ring" id="add-story-btn" title="أضف قصة جديدة">
+        <div class="story-inner" style="background:#fdf2f8; color:#db2777; font-size:1.5rem; font-weight:bold;">+</div>
+      </div>
+    </div>
+
+    <div style="position: relative; flex: 1; display: flex; flex-direction: column; overflow: hidden;">
+      <div id="chats-tab" class="chat-list"></div>
+      <button class="fab-btn" id="open-modal-btn" title="محادثة جديدة">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- شاشة الملف الشخصي -->
+  <div id="profile-screen" class="screen">
+    <div class="header" style="width: 100%;">
+      <button class="header-btn" id="back-from-profile-btn" style="padding: 6px 12px;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="9 18 15 12 9 6"></polyline></svg>
+        العودة
+      </button>
+      <div class="header-title" id="profile-screen-title" style="font-size: 1.1rem; color: #fff;">الملف الشخصي</div>
+      <div style="width: 60px;"></div>
+    </div>
+
+    <div style="flex: 1; width: 100%; display: flex; justify-content: center; align-items: flex-start; padding-top: 20px;">
+      <div class="profile-card">
+        <div class="profile-avatar-wrapper" id="change-avatar-trigger" title="تغيير الصورة">
+          <div class="avatar" id="profile-view-avatar" style="width:100%; height:100%; font-size: 2.5rem;">👤</div>
+          <div class="profile-avatar-overlay" id="avatar-overlay-text">تغيير</div>
+        </div>
+
+        <h2 id="profile-display-name" style="color: #1f2937; margin-bottom: 5px; font-size: 1.3rem;">اسم المستخدم</h2>
+        <p id="profile-display-username" style="color: #db2777; font-size: 0.85rem; font-weight: bold; margin-bottom: 20px;">@username</p>
+
+        <div style="width: 100%; text-align: right; margin-bottom: 8px; font-size: 0.9rem; font-weight: bold; color: #4b5563;">السيرة الذاتية (Bio):</div>
+        <textarea id="profile-bio-input" placeholder="اكتب شيئاً عن نفسك..." style="height: 90px; resize: none;"></textarea>
+
+        <button class="pink-btn" id="save-profile-btn" style="margin-top: 5px;">حفظ التعديلات</button>
+        <button class="pink-btn danger-btn" id="block-user-btn" style="margin-top: 10px; display: none;">حظر المستخدم 🚫</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- شاشة المحادثة -->
+  <div id="chat-screen" class="screen">
+    <div class="chat-header">
+      <button class="header-btn header-btn-light" id="back-to-main-btn" style="padding: 6px 10px;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="9 18 15 12 9 6"></polyline></svg>
+      </button>
+
+      <div style="display: flex; align-items: center; gap: 10px; flex: 1; cursor: pointer; min-width: 0;" id="header-visit-profile">
+        <div class="avatar" id="active-chat-avatar" style="width: 38px; height: 38px; font-size: 1rem;">👤</div>
+        <div style="display: flex; flex-direction: column; min-width: 0;">
+          <span id="active-chat-title" style="font-weight: bold; font-size: 1.05rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #fff;">محادثة</span>
+          <span id="active-chat-status" style="font-size: 0.75rem; color: rgba(255,255,255,0.85); white-space: nowrap;">متصل الآن</span>
+        </div>
+      </div>
+    </div>
+
+    <div id="messages-container" class="messages-container"></div>
+
+    <div class="input-area">
+      <input type="file" id="media-file-input" accept="image/*,video/*" style="display:none;">
+      <button class="attach-btn" id="attach-media-btn" title="إرفاق وسائط">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>
+      </button>
+      <input type="text" id="msg-input" placeholder="اكتب رسالة..." style="margin-bottom:0; flex:1; height: 44px;">
+      <button class="send-btn" id="send-msg-btn">إرسال</button>
+    </div>
+  </div>
+
+  <!-- نافذة عرض القصة وسجل المشاهدات (بإطار عصري أنيق ومبسط) -->
+  <div id="story-modal" class="modal">
+    <div class="modal-box" style="text-align: center; max-width: 320px; padding: 20px; border-radius: 24px;">
+      <h3 id="story-owner-title" style="color: #db2777; margin-bottom: 8px; font-size: 1.15rem; font-weight: 700;">قصة المستخدم</h3>
+      <div id="story-img-container" style="width: 100%; height: 240px; border-radius: 18px; overflow: hidden; background: #000; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+        <img id="view-story-img" src="" style="width: 100%; height: 100%; object-fit: contain;">
+      </div>
+      <div id="story-views-section" style="text-align: right; margin-top: 10px; max-height: 90px; overflow-y: auto;">
+        <div style="font-weight: bold; font-size: 0.85rem; color: #4b5563; margin-bottom: 4px;">سجل المشاهدين (<span id="views-count">0</span>):</div>
+        <div id="views-list" style="font-size: 0.85rem; color: #6b7280; display: flex; flex-direction: column; gap: 2px;"></div>
+      </div>
+
+      <!-- أزرار الإجراءات داخل نافذة القصة بتصميم عصري ومتناسق -->
+      <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 6px;">
+        <button id="delete-story-btn" class="pink-btn danger-btn" style="display: none; padding: 11px; border-radius: 14px; font-size: 0.9rem;">حذف القصة 🗑️</button>
+        <button id="close-story-modal" style="background:#f3f4f6; color:#4b5563; border:none; padding:11px; border-radius:14px; cursor:pointer; font-weight:bold; font-size:0.9rem; width:100%; transition: background 0.2s;">إغلاق</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- نافذة مخصصة لتأكيد حذف القصة بدلاً من مربع المتصفح القديم -->
+  <div id="confirm-delete-modal" class="modal" style="z-index: 110;">
+    <div class="modal-box" style="text-align: center; max-width: 300px; padding: 22px;">
+      <div style="font-size: 2.2rem; margin-bottom: 4px;">🗑️</div>
+      <h3 style="color: #1f2937; font-size: 1.15rem; margin-bottom: 6px;">حذف القصة</h3>
+      <p style="color: #6b7280; font-size: 0.9rem; margin-bottom: 18px;">هل أنت متأكد تماماً من رغبتك في حذف هذه القصة؟</p>
+      <div style="display: flex; gap: 10px;">
+        <button id="confirm-yes-btn" class="pink-btn danger-btn" style="flex: 1; padding: 11px; border-radius: 12px; font-size: 0.9rem;">نعم، حذف</button>
+        <button id="confirm-no-btn" style="flex: 1; background: #f3f4f6; color: #4b5563; border: none; padding: 11px; border-radius: 12px; cursor: pointer; font-weight: bold; font-size: 0.9rem;">إلغاء</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- نافذة البحث عن مستخدم -->
+  <div id="modal" class="modal">
+    <div class="modal-box">
+      <h3 style="color: #db2777; margin:0; font-size: 1.2rem;">محادثة جديدة</h3>
+      <p style="color: #6b7280; font-size: 0.85rem; margin-top: -6px;">أدخل اسم المستخدم للبدء بالدردشة أو زيارة ملفه الشخصي</p>
+      <input type="text" id="new-chat-target" placeholder="اسم المستخدم" style="margin-bottom:0; height: 44px;">
+      <button class="pink-btn" id="create-chat-btn">فتح المحادثة</button>
+      <button id="close-modal-btn" style="background:#f3f4f6; color:#4b5563; border:none; padding:12px; border-radius:12px; cursor:pointer; font-weight:bold; font-size:0.9rem;">إلغاء</button>
+    </div>
+  </div>
+
+  <script>
+    let db = null;
+    try {
+      const firebaseConfig = {
+        apiKey: "AIzaSyCWKrQ0GjyXOe-0pIZd0UyldzLG2NAxd6A",
+        authDomain: "damdom.firebaseapp.com",
+        databaseURL: "https://damdom-default-rtdb.firebaseio.com",
+        projectId: "damdom",
+        storageBucket: "damdom.firebasestorage.app",
+        messagingSenderId: "420586569944",
+        appId: "1:420586569944:web:a4ad5f9a0bd596703797ad",
+        measurementId: "G-PDB3E5RL7N"
+      };
+      if (typeof firebase !== 'undefined') {
+        firebase.initializeApp(firebaseConfig);
+        db = firebase.database();
+      }
+    } catch (e) {
+      console.log("Firebase offline mode.");
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      let currentUser = localStorage.getItem('damdom_username') || '';
+      let activeChatId = null;
+      let viewingUserId = null;
+      let messagesListener = null;
+      let typingTimeout = null;
+      let currentActiveStoryId = null;
+
+      if (window.history.state === null) {
+        window.history.replaceState({ screen: 'main-screen' }, '');
+      }
+
+      window.addEventListener('popstate', (event) => {
+        if (event.state && event.state.screen) {
+          showScreen(event.state.screen, false);
+          if (event.state.screen === 'main-screen') {
+            activeChatId = null;
+          }
+        } else {
+          showScreen('main-screen', false);
+          activeChatId = null;
+        }
+      });
+
+      function showToast(message) {
+        const toast = document.getElementById('toast-notification');
+        document.getElementById('toast-msg').innerText = message;
+        toast.classList.add('show');
+        setTimeout(() => {
+          toast.classList.remove('show');
+        }, 3000);
+      }
+
+      if (localStorage.getItem('damdom_logged_in') === 'true' && currentUser) {
+        showScreen('main-screen', false);
+        loadUserData(currentUser);
+        loadChats();
+        loadStories();
+        setupPresence();
+      } else {
+        showScreen('auth-screen', false);
+      }
+
+      document.getElementById('login-btn').addEventListener('click', handleAuth);
+      document.getElementById('open-modal-btn').addEventListener('click', openModal);
+      document.getElementById('profile-tab-btn').addEventListener('click', () => openProfile(currentUser));
+      document.getElementById('save-profile-btn').addEventListener('click', saveProfile);
+      document.getElementById('create-chat-btn').addEventListener('click', findAndCreateChat);
+      document.getElementById('close-modal-btn').addEventListener('click', closeModal);
+      document.getElementById('send-msg-btn').addEventListener('click', () => sendMessage());
+
+      document.getElementById('back-from-profile-btn').addEventListener('click', () => {
+        window.history.back();
+      });
+      document.getElementById('back-to-main-btn').addEventListener('click', () => {
+        window.history.back();
+      });
+
+      document.getElementById('header-visit-profile').addEventListener('click', () => {
+        if (activeChatId && activeChatId !== 'DamDom_AI') {
+          openProfile(activeChatId);
+        }
+      });
+
+      document.getElementById('change-avatar-trigger').addEventListener('click', () => {
+        if (viewingUserId === currentUser) {
+          document.getElementById('global-profile-pic-input').click();
+        }
+      });
+      document.getElementById('global-profile-pic-input').addEventListener('change', handleProfilePicUpload);
+
+      document.getElementById('add-story-btn').addEventListener('click', () => {
+        document.getElementById('global-story-input').click();
+      });
+      document.getElementById('global-story-input').addEventListener('change', handleStoryUpload);
+
+      document.getElementById('close-story-modal').addEventListener('click', () => {
+        document.getElementById('story-modal').classList.remove('active-modal');
+      });
+
+      document.getElementById('delete-story-btn').addEventListener('click', () => {
+        document.getElementById('confirm-delete-modal').classList.add('active-modal');
+      });
+
+      document.getElementById('confirm-no-btn').addEventListener('click', () => {
+        document.getElementById('confirm-delete-modal').classList.remove('active-modal');
+      });
+
+      document.getElementById('confirm-yes-btn').addEventListener('click', deleteCurrentStory);
+
+      document.getElementById('attach-media-btn').addEventListener('click', () => document.getElementById('media-file-input').click());
+      document.getElementById('media-file-input').addEventListener('change', handleMediaUpload);
+
+      const msgInput = document.getElementById('msg-input');
+      msgInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') sendMessage(); });
+      msgInput.addEventListener('input', handleTypingInput);
+
+      function setupPresence() {
+        if (!db || !currentUser) return;
+        const myStatusRef = db.ref('presence/' + currentUser);
+        myStatusRef.set({ status: 'online', lastSeen: Date.now() });
+        myStatusRef.onDisconnect().set({ status: 'offline', lastSeen: firebase.database.ServerValue.TIMESTAMP });
+
+        setInterval(() => {
+          if (currentUser) {
+            db.ref('presence/' + currentUser).update({ lastSeen: Date.now() });
+          }
+        }, 20000);
+      }
+
+      function handleAuth() {
+        const username = document.getElementById('username-input').value.trim();
+        const password = document.getElementById('password-input').value.trim();
+
+        if (!username || !password) {
+          showToast('الرجاء إدخال اسم المستخدم وكلمة المرور');
+          return;
+        }
+
+        if (db) {
+          db.ref('users/' + username).once('value', (snapshot) => {
+            const userData = snapshot.val();
+            if (userData) {
+              if (userData.password === password) {
+                completeLogin(username);
+              } else {
+                showToast('كلمة المرور غير صحيحة!');
+              }
+            } else {
+              db.ref('users/' + username).set({
+                username: username,
+                password: password,
+                name: username,
+                bio: 'مرحباً! أنا أستخدم تطبيق DamDom العصري.',
+                avatar: ''
+              }, (error) => {
+                if (!error) {
+                  db.ref('user_chats/' + username + '/DamDom_AI').set({ 
+                    name: '🤖 DamDom AI', 
+                    lastMessage: 'أهلاً بك! أنا DamDom AI جاهز لمساعدتك.' 
+                  });
+                  completeLogin(username);
+                } else {
+                  showToast('حدث خطأ أثناء إنشاء الحساب');
+                }
+              });
+            }
+          });
+        } else {
+          completeLogin(username);
+        }
+      }
+
+      function completeLogin(username) {
+        currentUser = username;
+        localStorage.setItem('damdom_logged_in', 'true');
+        localStorage.setItem('damdom_username', username);
+        showScreen('main-screen', true);
+        loadUserData(currentUser);
+        loadChats();
+        loadStories();
+        setupPresence();
+      }
+
+      function showScreen(screenId, pushHistory = true) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        const target = document.getElementById(screenId);
+        if (target) target.classList.add('active');
+
+        if (pushHistory && window.history.state?.screen !== screenId) {
+          window.history.pushState({ screen: screenId }, '');
+        }
+      }
+
+      function loadUserData(username) {
+        if (db) {
+          db.ref('users/' + username).once('value', (snap) => {
+            const data = snap.val();
+            if (data && data.avatar) {
+              localStorage.setItem('damdom_avatar_' + username, data.avatar);
+            }
+            if (data && data.bio) {
+              localStorage.setItem('damdom_bio_' + username, data.bio);
+            }
+          });
+        }
+      }
+
+      function loadChats() {
+        const container = document.getElementById('chats-tab');
+        if (!container) return;
+
+        if (db) {
+          db.ref('user_chats/' + currentUser + '/DamDom_AI').once('value', (snap) => {
+            if (!snap.exists()) {
+              db.ref('user_chats/' + currentUser + '/DamDom_AI').set({ 
+                name: '🤖 DamDom AI', 
+                lastMessage: 'أهلاً بك! أنا DamDom AI جاهز لمساعدتك.' 
+              });
+            }
+          });
+
+          db.ref('users/' + currentUser + '/blocked').on('value', (blockedSnap) => {
+            const blockedUsers = blockedSnap.val() || {};
+
+            db.ref('user_chats/' + currentUser).on('value', (snapshot) => {
+              container.innerHTML = '';
+              const remoteChats = snapshot.val();
+              if (!remoteChats) {
+                container.innerHTML = '<div style="padding:30px; text-align:center; color:#9ca3af;">لا توجد محادثات حالياً. انقر على زر (+) لبدء محادثة جديدة.</div>';
+                return;
+              }
+              Object.keys(remoteChats).forEach(chatId => {
+                if (blockedUsers[chatId]) return;
+                const chatData = remoteChats[chatId];
+                appendChatItem(container, chatId, chatData.name || chatId, chatData.lastMessage || '');
+              });
+            });
+          });
+        }
+      }
+
+      function appendChatItem(container, id, name, lastMsg) {
+        const div = document.createElement('div');
+        div.className = 'chat-item';
+        div.addEventListener('click', () => openChat(id, name));
+
+        const isAI = id === 'DamDom_AI';
+        let avatarContent = isAI ? '🤖' : (name ? name.substring(0, 1).toUpperCase() : '👤');
+
+        div.innerHTML = `
+          <div class="avatar-container">
+            <div class="avatar ${isAI ? 'ai-avatar' : ''}" id="list-avatar-${id}">${avatarContent}</div>
+          </div>
+          <div style="flex:1; min-width:0; margin-right: 4px;">
+            <div style="font-weight:700; color:#1f2937; font-size:1rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${name}</div>
+            <div style="color:#6b7280; font-size:0.85rem; margin-top:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${lastMsg}</div>
+          </div>
+        `;
+        container.appendChild(div);
+
+        if (!isAI && db) {
+          db.ref('users/' + id).once('value', (snap) => {
+            const uData = snap.val();
+            if (uData && uData.avatar) {
+              const avEl = document.getElementById(`list-avatar-${id}`);
+              if (avEl) avEl.innerHTML = `<img src="${uData.avatar}">`;
+            }
+          });
+        }
+      }
+
+      function loadStories() {
+        const bar = document.getElementById('stories-bar');
+        if (!bar || !db) return;
+
+        db.ref('stories/').on('value', (snapshot) => {
+          const addBtnHTML = document.getElementById('add-story-btn').outerHTML;
+          bar.innerHTML = '';
+
+          const tempDiv = document.createElement('div');
+          tempDiv.innerHTML = addBtnHTML;
+          const newAddBtn = tempDiv.firstElementChild;
+          bar.appendChild(newAddBtn);
+
+          newAddBtn.addEventListener('click', () => {
+            document.getElementById('global-story-input').click();
+          });
+
+          const stories = snapshot.val();
+          if (!stories) return;
+
+          const now = Date.now();
+          const twentyFourHours = 24 * 60 * 60 * 1000;
+
+          Object.keys(stories).forEach(storyId => {
+            const story = stories[storyId];
+            if (now - story.time < twentyFourHours) {
+              const ring = document.createElement('div');
+              ring.className = 'story-ring';
+              ring.innerHTML = `<div class="story-inner"><img src="${story.imageUrl}"></div>`;
+
+              ring.addEventListener('click', () => {
+                viewStory(storyId, story);
+              });
+
+              bar.appendChild(ring);
+            }
+          });
+        });
+      }
+
+      function handleStoryUpload(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(uploadEvent) {
+          if (db) {
+            db.ref('stories/').push({
+              user: currentUser,
+              imageUrl: uploadEvent.target.result,
+              time: Date.now(),
+              views: {}
+            });
+            showToast('تم نشر القصة بنجاح لمدة 24 ساعة!');
+          }
+        };
+        reader.readAsDataURL(file);
+        e.target.value = '';
+      }
+
+      function viewStory(storyId, story) {
+        currentActiveStoryId = storyId;
+        const modal = document.getElementById('story-modal');
+        const imgEl = document.getElementById('view-story-img');
+        const titleEl = document.getElementById('story-owner-title');
+        const viewsCountEl = document.getElementById('views-count');
+        const viewsListEl = document.getElementById('views-list');
+        const deleteBtn = document.getElementById('delete-story-btn');
+
+        imgEl.src = story.imageUrl;
+        titleEl.innerText = `قصة: ${story.user}`;
+
+        if (story.user === currentUser) {
+          deleteBtn.style.display = 'block';
+        } else {
+          deleteBtn.style.display = 'none';
+          if (db) {
+            db.ref(`stories/${storyId}/views/${currentUser}`).set(true);
+          }
+        }
+
+        const views = story.views || {};
+        const viewers = Object.keys(views);
+        viewsCountEl.innerText = viewers.length;
+        viewsListEl.innerHTML = viewers.length === 0 ? 'لا توجد مشاهدات حتى الآن' : viewers.map(v => `<div style="padding: 2px 0; border-bottom: 1px solid #f3f4f6;">👤 ${v}</div>`).join('');
+
+        modal.classList.add('active-modal');
+      }
+
+      function deleteCurrentStory() {
+        if (!currentActiveStoryId || !db) return;
+        db.ref(`stories/${currentActiveStoryId}`).remove().then(() => {
+          document.getElementById('confirm-delete-modal').classList.remove('active-modal');
+          document.getElementById('story-modal').classList.remove('active-modal');
+          showToast('تم حذف القصة بنجاح');
+        });
+      }
+
+      function openProfile(targetUser) {
+        viewingUserId = targetUser;
+        showScreen('profile-screen', true);
+
+        const isMe = targetUser === currentUser;
+        const titleEl = document.getElementById('profile-screen-title');
+        const bioInput = document.getElementById('profile-bio-input');
+        const saveBtn = document.getElementById('save-profile-btn');
+        const overlayText = document.getElementById('avatar-overlay-text');
+        const blockBtn = document.getElementById('block-user-btn');
+
+        if (titleEl) titleEl.innerText = isMe ? 'ملفي الشخصي' : `ملف: ${targetUser}`;
+        if (bioInput) bioInput.disabled = !isMe;
+        if (saveBtn) saveBtn.style.display = isMe ? 'block' : 'none';
+        if (overlayText) overlayText.style.display = isMe ? 'block' : 'none';
+        if (blockBtn) blockBtn.style.display = (!isMe && targetUser !== 'DamDom_AI') ? 'block' : 'none';
+
+        const nameEl = document.getElementById('profile-display-name');
+        const userEl = document.getElementById('profile-display-username');
+        const avContainer = document.getElementById('profile-view-avatar');
+
+        if (nameEl) nameEl.innerText = targetUser;
+        if (userEl) userEl.innerText = '@' + targetUser;
+        if (avContainer) avContainer.innerHTML = targetUser === 'DamDom_AI' ? '🤖' : targetUser.substring(0,1).toUpperCase();
+
+        if (db) {
+          db.ref('users/' + targetUser).once('value', (snap) => {
+            const data = snap.val();
+            if (data) {
+              if (nameEl && data.name) nameEl.innerText = data.name;
+              if (bioInput) bioInput.value = data.bio || '';
+              if (data.avatar && avContainer) {
+                avContainer.innerHTML = `<img src="${data.avatar}">`;
+              }
+            }
+          });
+
+          if (!isMe && blockBtn) {
+            db.ref(`users/${currentUser}/blocked/${targetUser}`).once('value', (snap) => {
+              if (snap.exists()) {
+                blockBtn.innerText = 'إلغاء الحظر 🔓';
+                blockBtn.classList.remove('danger-btn');
+              } else {
+                blockBtn.innerText = 'حظر المستخدم 🚫';
+                blockBtn.classList.add('danger-btn');
+              }
+            });
+
+            blockBtn.onclick = () => {
+              db.ref(`users/${currentUser}/blocked/${targetUser}`).once('value', (snap) => {
+                if (snap.exists()) {
+                  db.ref(`users/${currentUser}/blocked/${targetUser}`).remove().then(() => {
+                    showToast('تم إلغاء الحظر');
+                    openProfile(targetUser);
+                  });
+                } else {
+                  if (confirm(`هل أنت متأكد من حظر المستخدم ${targetUser}؟`)) {
+                    db.ref(`users/${currentUser}/blocked/${targetUser}`).set(true).then(() => {
+                      showToast('تم الحظر بنجاح');
+                      window.history.back();
+                    });
+                  }
+                }
+              });
+            };
+          }
+        }
+      }
+
+      function handleProfilePicUpload(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(uploadEvent) {
+          const base64Img = uploadEvent.target.result;
+          const avContainer = document.getElementById('profile-view-avatar');
+          if (avContainer) avContainer.innerHTML = `<img src="${base64Img}">`;
+
+          localStorage.setItem('damdom_avatar_' + currentUser, base64Img);
+          if (db) {
+            db.ref('users/' + currentUser).update({ avatar: base64Img });
+          }
+          showToast('تم تحديث الصورة الشخصية');
+        };
+        reader.readAsDataURL(file);
+        e.target.value = '';
+      }
+
+      function saveProfile() {
+        const bioInput = document.getElementById('profile-bio-input');
+        const bio = bioInput ? bioInput.value.trim() : '';
+        localStorage.setItem('damdom_bio_' + currentUser, bio);
+
+        if (db) {
+          db.ref('users/' + currentUser).update({ bio: bio });
+        }
+        showToast('تم حفظ البيانات بنجاح!');
+        window.history.back();
+      }
+
+      function openChat(chatId, chatName) {
+        activeChatId = chatId;
+        const titleEl = document.getElementById('active-chat-title');
+        const avEl = document.getElementById('active-chat-avatar');
+        const statusEl = document.getElementById('active-chat-status');
+
+        if (titleEl) titleEl.innerText = chatName;
+        if (avEl) {
+          if (chatId === 'DamDom_AI') {
+            avEl.innerHTML = '🤖';
+            avEl.className = 'avatar ai-avatar';
+            if (statusEl) statusEl.innerText = 'متصل دائماً للخدمة';
+          } else {
+            avEl.innerHTML = chatName.substring(0,1).toUpperCase();
+            avEl.className = 'avatar';
+            if (db) {
+              db.ref('users/' + chatId).once('value', (snap) => {
+                const uData = snap.val();
+                if (uData && uData.avatar) avEl.innerHTML = `<img src="${uData.avatar}">`;
+              });
+
+              db.ref('presence/' + chatId).on('value', (pSnap) => {
+                const pData = pSnap.val();
+                if (!statusEl) return;
+                if (pData && pData.status === 'online') {
+                  statusEl.innerText = 'متصل الآن';
+                } else if (pData && pData.lastSeen) {
+                  const date = new Date(pData.lastSeen);
+                  statusEl.innerText = `آخر ظهور: ${date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`;
+                } else {
+                  statusEl.innerText = 'غير متصل';
+                }
+              });
+
+              db.ref(`typing/${chatId}/${currentUser}`).on('value', (tSnap) => {
+                if (!statusEl) return;
+                if (tSnap.val() === true) {
+                  statusEl.innerText = 'جاري الكتابة... ✍️';
+                }
+              });
+            }
+          }
+        }
+
+        showScreen('chat-screen', true);
+        if (db) listenToFirebaseMessages(chatId);
+      }
+
+      function handleTypingInput() {
+        if (!db || !activeChatId || activeChatId === 'DamDom_AI') return;
+        db.ref(`typing/${currentUser}/${activeChatId}`).set(true);
+
+        clearTimeout(typingTimeout);
+        typingTimeout = setTimeout(() => {
+          db.ref(`typing/${currentUser}/${activeChatId}`).remove();
+        }, 2000);
+      }
+
+      function listenToFirebaseMessages(chatId) {
+        const container = document.getElementById('messages-container');
+        if (!container) return;
+        container.innerHTML = '';
+        if (messagesListener && db) db.ref('messages/' + chatId).off('value', messagesListener);
+
+        if (db) {
+          messagesListener = db.ref('messages/' + chatId).on('value', (snapshot) => {
+            container.innerHTML = '';
+            const msgs = snapshot.val();
+            if (!msgs) return;
+            Object.values(msgs).forEach(msg => {
+              appendMessageBubble(container, msg);
+            });
+            container.scrollTop = container.scrollHeight;
+          });
+        }
+      }
+
+      function appendMessageBubble(container, msg) {
+        const isMe = msg.sender === currentUser;
+        const isAImsg = msg.sender === 'DamDom_AI';
+
+        let bubbleClass = 'msg-other';
+        if (isMe) bubbleClass = 'msg-me';
+        else if (isAImsg) bubbleClass = 'msg-ai';
+
+        const bubble = document.createElement('div');
+        bubble.className = `msg-bubble ${bubbleClass}`;
+
+        let contentHtml = '';
+        if (msg.type === 'image') contentHtml = `<img src="${msg.mediaUrl}" class="msg-media">`;
+        else if (msg.type === 'video') contentHtml = `<video src="${msg.mediaUrl}" class="msg-media" controls></video>`;
+
+        if (msg.text) contentHtml += `<p style="margin:0;">${msg.text}</p>`;
+
+        bubble.innerHTML = `${contentHtml}<span style="font-size:0.65rem; color:${isMe ? 'rgba(255,255,255,0.8)' : '#9ca3af'}; display:block; margin-top:4px; text-align:left;">${msg.time}</span>`;
+        container.appendChild(bubble);
+      }
+
+      function sendMessage(customText = null, customType = 'text', customMediaUrl = null) {
+        const input = document.getElementById('msg-input');
+        const text = customText !== null ? customText : (input ? input.value.trim() : '');
+        if ((!text && !customMediaUrl) || !activeChatId) return;
+
+        const timeNow = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const newMsg = { text: text, sender: currentUser, time: timeNow, type: customType, mediaUrl: customMediaUrl };
+
+        if (db) {
+          db.ref('messages/' + activeChatId).push(newMsg);
+          const lastMsgText = customType !== 'text' ? '📎 وسائط مرفقة' : text;
+          db.ref('user_chats/' + currentUser + '/' + activeChatId).update({ lastMessage: lastMsgText, name: activeChatId === 'DamDom_AI' ? '🤖 DamDom AI' : activeChatId });
+
+          if (activeChatId !== 'DamDom_AI') {
+            db.ref('user_chats/' + activeChatId + '/' + currentUser).update({ lastMessage: lastMsgText, name: currentUser });
+            db.ref(`typing/${currentUser}/${activeChatId}`).remove();
+          } else {
+            triggerAIResponse(text);
+          }
+        }
+
+        if (input && customText === null) input.value = '';
+      }
+
+      function triggerAIResponse(userText) {
+        setTimeout(() => {
+          let aiReply = "أهلاً بك! أنا DamDom AI، كيف يمكنني مساعدتك اليوم؟";
+          const t = userText.toLowerCase();
+
+          if (t.includes('مرحباً') || t.includes('السلام') || t.includes('اهلا')) {
+            aiReply = "وعليكم السلام ورحمة الله! يسعدني جداً التحدث معك 😊";
+          } else if (t.includes('اسمك') || t.includes('من أنت')) {
+            aiReply = "أنا DamDom AI، مساعدك الذكي والمصخصيص خصيصاً لتطبيق DamDom 🚀";
+          } else if (t.length > 0) {
+            aiReply = `لقد استلمت رسالتك: "${userText}". هل ترغب بمناقشة هذا الأمر بشكل أعمق؟`;
+          }
+
+          const timeNow = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+          const aiMsg = { text: aiReply, sender: 'DamDom_AI', time: timeNow, type: 'text', mediaUrl: null };
+
+          db.ref('messages/DamDom_AI').push(aiMsg);
+          db.ref('user_chats/' + currentUser + '/DamDom_AI').update({ lastMessage: aiReply, name: '🤖 DamDom AI' });
+        }, 1000);
+      }
+
+      function handleMediaUpload(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(uploadEvent) {
+          sendMessage(file.name, file.type.startsWith('video') ? 'video' : 'image', uploadEvent.target.result);
+        };
+        reader.readAsDataURL(file);
+        e.target.value = '';
+      }
+
+      function openModal() { document.getElementById('modal').classList.add('active-modal'); }
+      function closeModal() { document.getElementById('modal').classList.remove('active-modal'); }
+
+      function findAndCreateChat() {
+        const targetInput = document.getElementById('new-chat-target');
+        if (!targetInput) return;
+        const target = targetInput.value.trim();
+
+        if (!target || target === currentUser) {
+          showToast('الرجاء إدخال اسم مستخدم صحيح');
+          return;
+        }
+
+        if (db) {
+          db.ref('users/' + target).once('value', (snapshot) => {
+            if (snapshot.exists()) {
+              db.ref(`users/${currentUser}/blocked/${target}`).once('value', (bSnap) => {
+                if (bSnap.exists()) {
+                  showToast('لا يمكنك مراسلة مستخدم محظور');
+                  return;
+                }
+                db.ref('user_chats/' + currentUser + '/' + target).set({ name: target, lastMessage: 'محادثة جديدة' });
+                db.ref('user_chats/' + target + '/' + currentUser).set({ name: currentUser, lastMessage: 'محادثة جديدة' });
+
+                closeModal();
+                openChat(target, target);
+                targetInput.value = '';
+              });
+            } else {
+              showToast('المستخدم غير موجود!');
+            }
+          });
+        }
+      }
+    });
+  </script>
+</body>
+</html>
