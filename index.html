@@ -3,7 +3,6 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <link rel="manifest" href="manifest.json">
   <title>DamDom - التطبيق الشامل</title>
 
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
@@ -109,4 +108,52 @@
   </style>
 </head>
 <body>
-<!-- باقي كود الصفحة -->
+
+  <div id="toast-notification">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
+    <span id="toast-msg">تم بنجاح!</span>
+  </div>
+
+  <!-- الشاشات والنوافذ (تم الاختصار للمساحة هنا) -->
+  <div id="auth-screen" class="screen active">
+    <div class="auth-box">
+      <div class="queen-logo">DamDom</div>
+      <input type="text" id="username-input" placeholder="اسم المستخدم الفريد">
+      <input type="password" id="password-input" placeholder="كلمة المرور">
+      <button class="pink-btn" id="login-btn">دخول أو إنشاء حساب 🚀</button>
+    </div>
+  </div>
+
+  <script>
+    // المتغيرات لسهولة التعديل
+    const FB_API_KEY = "AIzaSyCWKrQ0GjyXOe-0pIZd0UyldzLG2NAxd6A";
+    const FB_AUTH_DOMAIN = "damdom.firebaseapp.com";
+    const FB_DB_URL = "https://damdom-default-rtdb.firebaseio.com";
+    const FB_PROJECT_ID = "damdom";
+    const FB_STORAGE_BUCKET = "damdom.firebasestorage.app";
+    const FB_SENDER_ID = "420586569944";
+    const FB_APP_ID = "1:420586569944:web:a4ad5f9a0bd596703797ad";
+
+    let db = null;
+    try {
+      const firebaseConfig = {
+        apiKey: FB_API_KEY,
+        authDomain: FB_AUTH_DOMAIN,
+        databaseURL: FB_DB_URL,
+        projectId: FB_PROJECT_ID,
+        storageBucket: FB_STORAGE_BUCKET,
+        messagingSenderId: FB_SENDER_ID,
+        appId: FB_APP_ID
+      };
+      if (typeof firebase !== 'undefined') {
+        firebase.initializeApp(firebaseConfig);
+        db = firebase.database();
+      }
+    } catch (e) {
+      console.log("Firebase offline mode.");
+    }
+    
+    // باقي الكود البرمجي كما هو...
+  </script>
+</body>
+</html>
