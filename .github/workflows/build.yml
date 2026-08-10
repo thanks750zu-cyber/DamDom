@@ -1,4 +1,4 @@
-name: Build Android APK
+ame: Build Android APK
 
 on:
   push:
@@ -22,6 +22,12 @@ jobs:
       with:
         distribution: 'temurin'
         java-version: '21'
+        java-package: jdk
+
+    - name: Force Java 21 Environment
+      run: |
+        echo "JAVA_HOME=$JAVA_HOME"
+        java -version
 
     - name: Install Dependencies
       run: npm install
@@ -39,3 +45,4 @@ jobs:
       with:
         name: app-debug
         path: android/app/build/outputs/apk/debug/app-debug.apk
+
