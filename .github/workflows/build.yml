@@ -23,6 +23,9 @@ jobs:
         distribution: 'temurin'
         java-version: '21'
 
+    - name: Validate Java Version
+      run: java -version
+
     - name: Install dependencies
       run: npm install
 
