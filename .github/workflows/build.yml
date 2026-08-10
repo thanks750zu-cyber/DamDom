@@ -23,8 +23,10 @@ jobs:
         distribution: 'temurin'
         java-version: '21'
 
-    - name: Install dependencies
-      run: npm install
+    - name: Install Dependencies & Build Web
+      run: |
+        npm install
+        npm run build
 
     - name: Sync Capacitor Android
       run: npx cap sync android
