@@ -23,6 +23,11 @@ jobs:
         distribution: 'temurin'
         java-version: '21'
 
+    - name: Verify Java Version
+      run: |
+        java -version
+        echo "JAVA_HOME=$JAVA_HOME"
+
     - name: Install Dependencies & Build Web
       run: |
         npm install
