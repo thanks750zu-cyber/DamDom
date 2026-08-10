@@ -25,12 +25,11 @@ jobs:
       - name: Install dependencies and build web
         run: |
           npm install
-          npm run build || true
+          npm run build
 
-      - name: Add Android platform and generate Capacitor assets
+      - name: Sync Capacitor and Android platform
         run: |
-          npx cap add android || true
-          npx cap update android
+          npx cap sync android
 
       - name: Accept Android SDK licenses and Build APK
         run: |
