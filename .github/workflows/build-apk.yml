@@ -29,6 +29,11 @@ jobs:
         run: |
           npx cap sync android || true
 
+      - name: Fix missing Cordova variables gradle
+        run: |
+          mkdir -p android/capacitor-cordova-android-plugins
+          touch android/capacitor-cordova-android-plugins/cordova.variables.gradle
+
       - name: Accept Android SDK licenses and Build APK
         run: |
           cd android
@@ -37,3 +42,5 @@ jobs:
           ./gradlew assembleDebug
         env:
           ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
+
+
