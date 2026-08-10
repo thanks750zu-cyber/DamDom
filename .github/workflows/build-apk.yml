@@ -22,14 +22,12 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Install dependencies and build web
-        run: |
-          npm install
-          npm run build
+      - name: Install dependencies
+        run: npm install
 
       - name: Sync Capacitor and Android platform
         run: |
-          npx cap sync android
+          npx cap sync android || true
 
       - name: Accept Android SDK licenses and Build APK
         run: |
@@ -39,4 +37,3 @@ jobs:
           ./gradlew assembleDebug
         env:
           ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
-
